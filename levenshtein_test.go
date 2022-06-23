@@ -34,5 +34,26 @@ func TestLevenshtein(t *testing.T) {
 		if dist != tt.dist {
 			t.Errorf("Levenshtein('%s', '%s') = %v, want %v", tt.s1, tt.s2, dist, tt.dist)
 		}
+
+		dist = Levenshtein_DP(tt.s1, tt.s2)
+		if dist != tt.dist {
+			t.Errorf("Levenshtein_DP('%s', '%s') = %v, want %v", tt.s1, tt.s2, dist, tt.dist)
+		}
+	}
+}
+
+func BenchmarkLevenshtein(b *testing.B) {
+	for n:=0; n < b.N; n++ {
+		for _, tt := range levtests {
+			_ = Levenshtein(tt.s1, tt.s2)
+		}
+	}
+}
+
+func BenchmarkLevenshtein_DP(b *testing.B) {
+	for n:=0; n < b.N; n++ {
+		for _, tt := range levtests {
+			_ = Levenshtein_DP(tt.s1, tt.s2)
+		}
 	}
 }
