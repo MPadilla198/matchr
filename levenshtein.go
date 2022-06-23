@@ -7,7 +7,7 @@ import "unicode/utf8"
 // deletions, and substitutions it takes to transform one
 // string (s1) into another (s2). Each step in the transformation "costs"
 // one distance point.
-func Levenshtein(s1 string, s2 string) (distance int) {
+func Levenshtein_old(s1, s2 string) (distance int) {
 	// index by code point, not byte
 	r1 := []rune(s1)
 	r2 := []rune(s2)
@@ -53,7 +53,7 @@ func Levenshtein(s1 string, s2 string) (distance int) {
 // Also see: https://xlinux.nist.gov/dads/HTML/Levenshtein.html
 // This version uses dynamic programming with time complexity of O(mn) where m and n are lengths of a and b,
 // and the space complexity is n + 1 of integers plus some constant  space(i.e. O(n)).
-func Levenshtein_DP(a,b string) int {
+func Levenshtein(a, b string) int {
 	f := make([]int, utf8.RuneCountInString(b)+1)
 
 	for j := range f {
