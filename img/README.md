@@ -41,7 +41,5 @@ Inspiration comes from the pythonic image quality metrics library [sewar](https:
 
 This is a personal project, though I hope that someone finds some use from it.
 
-/bin/bash: wq: command not found
-
 Will add links to all research papers used throughout the creation of this library.
 
