@@ -1,53 +1,53 @@
 package img
 
-func Mse(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Mse() (float64, error) {
+	return 0.0, nil
 }
 
-func Rmse(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Rmse() (float64, error) {
+	return 0.0, nil
 }
 
-func Sam(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Sam() (float64, error) {
+	return 0.0, nil
 }
 
-func Race(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Race() (float64, error) {
+	return 0.0, nil
 }
 
-func Ergas(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Ergas() (float64, error) {
+	return 0.0, nil
 }
 
-func Uqi(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Uqi() (float64, error) {
+	return 0.0, nil
 }
 
-func Ssim(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Ssim() (float64, error) {
+	return 0.0, nil
 }
 
-func Psnr(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Psnr() (float64, error) {
+	return 0.0, nil
 }
 
-func Msssimi(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Msssimi() (float64, error) {
+	return 0.0, nil
 }
 
-func Vif(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Vif() (float64, error) {
+	return 0.0, nil
 }
 
-func Dlambda(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Dlambda() (float64, error) {
+	return 0.0, nil
 }
 
-func Ds(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Ds() (float64, error) {
+	return 0.0, nil
 }
 
-func Qnr(reference, subject imageMatrix) (float64, error) {
-	return nil
+func Qnr() (float64, error) {
+	return 0.0, nil
 }
