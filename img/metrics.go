@@ -1,53 +1,62 @@
 package img
 
-func Mse() (float64, error) {
-	return 0.0, nil
+type ImgMetric func(file1, file2 string) ([]float64, error)
+
+var ImageMetrics map[string]ImgMetric
+
+func init() {
+	ImageMetrics = map[string]ImgMetric{"mse": Mse, "rmse": Rmse, "sam": Sam, "race": Race, "ergas": Ergas, "uqi": Uqi,
+		"ssim": Ssim, "psnr": Psnr, "msssimi": Msssimi, "vif": Vif, "dlambda": Dlambda, "ds": Ds, "qnr": Qnr}
 }
 
-func Rmse() (float64, error) {
-	return 0.0, nil
+func Mse(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Sam() (float64, error) {
-	return 0.0, nil
+func Rmse(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Race() (float64, error) {
-	return 0.0, nil
+func Sam(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Ergas() (float64, error) {
-	return 0.0, nil
+func Race(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Uqi() (float64, error) {
-	return 0.0, nil
+func Ergas(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Ssim() (float64, error) {
-	return 0.0, nil
+func Uqi(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Psnr() (float64, error) {
-	return 0.0, nil
+func Ssim(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Msssimi() (float64, error) {
-	return 0.0, nil
+func Psnr(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Vif() (float64, error) {
-	return 0.0, nil
+func Msssimi(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Dlambda() (float64, error) {
-	return 0.0, nil
+func Vif(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Ds() (float64, error) {
-	return 0.0, nil
+func Dlambda(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
 
-func Qnr() (float64, error) {
-	return 0.0, nil
+func Ds(file1, file2 string) ([]float64, error) {
+	return nil, nil
+}
+
+func Qnr(file1, file2 string) ([]float64, error) {
+	return nil, nil
 }
