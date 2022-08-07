@@ -4,13 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
+	"gonum.org/v1/gonum/mat"
+	img "image"
+	"image/jpeg"
 	"io"
 	"os"
 	"regexp"
 	"strconv"
-
-	_ "gonum.org/v1/gonum/mat"
-	_ "image"
 )
 
 /*************************************************
@@ -18,6 +19,121 @@ import (
 * IMAGE MATRIX UTILITIES
 *
 ***************************************************/
+
+type image img.Image
+
+type imageMatrix struct {
+	img.Image
+
+	// ONLY TO BE USED IN THIS FILE
+	_r   mat.Dense
+	_g   mat.Dense
+	_b   mat.Dense
+	_a   mat.Dense
+	_gra mat.Dense // Average gray
+	_lum mat.Dense // luminance
+}
+
+func (im *imageMatrix) Dims() (r, c int) {
+	r, c, _, _ = _size(im, &im._r)
+	return
+}
+
+func newImageMatrix(given image) *imageMatrix {
+	im := new(imageMatrix)
+	im.Image = given
+	return im
+}
+
+func newImageMatrixFromFile(filePath string) *imageMatrix {
+	rawData, err := os.Open(filePath)
+	checkFatal(err)
+	rd := bufio.NewReader(rawData)
+
+	im := new(imageMatrix)
+	im.Image, err = jpeg.Decode(rd)
+	checkFatal(err)
+	return im
+}
+
+func _size(im *imageMatrix, dense *mat.Dense) (row, col, x, y int) {
+	row, col = dense.Dims() // (row, col) = (x, y)
+	min := im.Image.Bounds().Min
+	max := im.Image.Bounds().Max
+	x = max.X - min.X
+	y = max.Y - min.Y
+	return
+}
+
+func _sameSize(im *imageMatrix, dense *mat.Dense) bool {
+	r, c, x, y := _size(im, dense)
+	return r == x && c == y
+}
+
+// DATA POPULATING FUNCS FOR PACKAGE
+
+func _validate(im *imageMatrix, given *mat.Dense, populateFunc func()) {
+	if !_sameSize(im, given) {
+		populateFunc()
+		if !_sameSize(im, given) {
+			panic(fmt.Sprintf(`imageMatrix: %+v\nDense: %+v\nNOT THE SAME SIZE`, im, given))
+		}
+	}
+}
+
+func (im *imageMatrix) red(given *mat.Dense) {
+	_validate(im, given, im._populateRGBA)
+	given = &im._r
+}
+
+func (im *imageMatrix) green(given *mat.Dense) {
+	_validate(im, given, im._populateRGBA)
+	given = &im._g
+}
+
+func (im *imageMatrix) blue(given *mat.Dense) {
+	_validate(im, given, im._populateRGBA)
+	given = &im._b
+}
+
+func (im *imageMatrix) alpha(given *mat.Dense) {
+	_validate(im, given, im._populateRGBA)
+	given = &im._a
+}
+
+func (im *imageMatrix) _populateRGBA() {
+	rowlen, collen := im.Dims()
+	for r := 0; r < rowlen; r++ {
+		for c := 0; c < collen; c++ {
+			red, green, blue, alpha := im.Image.At(r, c).RGBA()
+			im._r.Set(r, c, float64(red))
+			im._g.Set(r, c, float64(green))
+			im._b.Set(r, c, float64(blue))
+			im._a.Set(r, c, float64(alpha))
+		}
+	}
+}
+
+func (im *imageMatrix) gray(given *mat.Dense) { // Average gray
+	_validate(im, given, im._populateGrayScale)
+	given = &im._gra
+}
+
+func (im *imageMatrix) lumin(given *mat.Dense) { // luminance
+	_validate(im, given, im._populateGrayScale)
+	given = &im._lum
+}
+
+func (im *imageMatrix) _populateGrayScale() {
+	rowlen, collen := im.Dims()
+	for r := 0; r < rowlen; r++ {
+		for c := 0; c < collen; c++ {
+			red, green, blue, alpha := im.Image.At(r, c).RGBA()
+			im._gra.Set(r, c, (float64(red)+float64(green)+float64(blue)+float64(alpha))/4.0)
+			im._lum.Set(r, c, (float64(red)*0.2126+float64(green)*0.7152+float64(blue)*0.0722)*(float64(alpha)/256.0))
+		}
+	}
+}
 
 /*************************************************
 *
