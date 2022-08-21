@@ -1,16 +1,33 @@
 package img
 
-type ImgMetric func(file1, file2 string) ([]float64, error)
+import (
+	"gonum.org/v1/gonum/mat"
+	"log"
+	"math"
+)
 
-var ImageMetrics map[string]ImgMetric
+type MetricFunc func(file1, file2 string) ([]float64, error)
+
+var ImageMetrics map[string]MetricFunc
 
 func init() {
-	ImageMetrics = map[string]ImgMetric{"mse": Mse, "rmse": Rmse, "sam": Sam, "race": Race, "ergas": Ergas, "uqi": Uqi,
+	ImageMetrics = map[string]MetricFunc{"mse": Mse, "rmse": Rmse, "sam": Sam, "race": Race, "ergas": Ergas, "uqi": Uqi,
 		"ssim": Ssim, "psnr": Psnr, "msssimi": Msssimi, "vif": Vif, "dlambda": Dlambda, "ds": Ds, "qnr": Qnr}
 }
 
 func Mse(file1, file2 string) ([]float64, error) {
-	return nil, nil
+	log.Printf("%s and %s", file1, file2)
+	img1 := newImageMatrixFromFile(file1).lumin()
+	img2 := newImageMatrixFromFile(file2).lumin()
+
+	r, c := img1.Dims()
+	result := mat.NewDense(r, c, nil)
+
+	result.Apply(func(i, j int, v float64) float64 {
+		return math.Pow(math.Abs(v-img2.At(i, j)), 2)
+	}, img1)
+
+	return []float64{mat.Sum(result)}, nil
 }
 
 func Rmse(file1, file2 string) ([]float64, error) {
