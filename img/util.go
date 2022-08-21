@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"fmt"
 	"gonum.org/v1/gonum/mat"
 	"image"
 	"image/color"
@@ -26,96 +25,221 @@ import (
 *
 ***************************************************/
 
-// https://en.wikipedia.org/wiki/HSL_and_HSV
-// https://alienryderflex.com/hsp.html
+type Color interface {
+	color.Color
+	EEEA() (e1, e2, e3 float64)
+}
+
+type Model interface {
+	Convert(c color.Color) Color
+}
+
+type model struct {
+	f func(color.Color) Color
+}
+
+func (m model) Convert(c color.Color) Color {
+	return m.f(c)
+}
+
+func ModelFunc(f func(color.Color) Color) Model {
+	return model{f: f}
+}
+
 var (
-	HSLModel      color.Model = color.ModelFunc(hslModel)
-	HSVModel      color.Model = color.ModelFunc(hsvModel)
-	HSPModel      color.Model = color.ModelFunc(hspModel)
-	Luma601Model  color.Model = color.ModelFunc(luma601Model)
-	Luma240Model  color.Model = color.ModelFunc(luma240Model)
-	Luma709Model  color.Model = color.ModelFunc(luma709Model)
-	Luma2020Model color.Model = color.ModelFunc(luma2020Model)
+	// HSLModel https://en.wikipedia.org/wiki/HSL_and_HSV
+	HSLModel = ModelFunc(hslModel)
+	HSVModel = ModelFunc(hsvModel)
+	// HSPModel https://alienryderflex.com/hsp.html
+	HSPModel = ModelFunc(hspModel)
+	// Luma601Model https://en.wikipedia.org/wiki/HSL_and_HSV#Lightness
+	Luma601Model  = ModelFunc(luma601Model)
+	Luma240Model  = ModelFunc(luma240Model)
+	Luma709Model  = ModelFunc(luma709Model)
+	Luma2020Model = ModelFunc(luma2020Model)
 )
 
-func hslModel(c color.Color) color.Color {
-	if _, ok := c.(HSL); ok {
-		return c
-	}
+func hslModel(c color.Color) Color {
+	if hslC, ok := c.(HSL); ok {
+		return hslC
+	} else if hsv, ok := c.(HSV); ok {
+		l := hsv.v * (1 - (hsv.s / 2))
+		var sl float32
+		if l == 0 || l == 1 {
+			sl = 0
+		} else {
+			sl = (hsv.v - l) / float32(math.Min(float64(l), float64(1.0-l)))
+		}
+		return HSL{hsv.h, sl, l}
+	} // else if hsp, ok := c.(HSP); ok {}
+
+	// TODO Convert to HSL from RGBA
 	return nil
 }
 
 type HSL struct {
+	h, s, l float32
+}
+
+func (c HSL) EEEA() (e1, e2, e3 float64) {
+	e1 = float64(c.h)
+	e2 = float64(c.s)
+	e3 = float64(c.l)
+	return
 }
 
 func (c HSL) RGBA() (r, g, b, a uint32) {
 	return
 }
 
-func hsvModel(c color.Color) color.Color {
+func hsvModel(c color.Color) Color {
+	if hsvC, ok := c.(HSV); ok {
+		return hsvC
+	} else if hsl, ok := c.(HSL); ok {
+		v := hsl.l + hsl.s*(float32(math.Min(float64(hsl.l), float64(1.0-hsl.l))))
+		var sv float32
+		if v == 0 {
+			sv = 0
+		} else {
+			sv = 2 * (1.0 - (hsl.l - v))
+		}
+		return HSL{hsl.h, sv, v}
+	} // else if hsp, ok := c.(HSP); ok {}
 	return nil
 }
 
 type HSV struct {
+	h, s, v float32
+}
+
+func (c HSV) EEEA() (e1, e2, e3 float64) {
+	e1 = float64(c.h)
+	e2 = float64(c.s)
+	e3 = float64(c.v)
+	return
 }
 
 func (c HSV) RGBA() (r, g, b, a uint32) {
 	return
 }
 
-func hspModel(c color.Color) color.Color {
+func hspModel(c color.Color) Color {
 	return nil
 }
 
 type HSP struct {
+	h, s, p float32
+}
+
+func (c HSP) EEEA() (e1, e2, e3 float64) {
+	e1 = float64(c.h)
+	e2 = float64(c.s)
+	e3 = float64(c.p)
+	return
 }
 
 func (c HSP) RGBA() (r, g, b, a uint32) {
 	return
 }
 
-func luma601Model(c color.Color) color.Color {
-	return nil
+func luma601Model(c color.Color) Color {
+	r, g, b, a := c.RGBA()
+	rfl := float64(r) / float64(a)
+	gfl := float64(g) / float64(a)
+	bfl := float64(b) / float64(a)
+	return Luma601{L: (0.2989 + rfl) + (0.5870 * gfl) + (0.1140 * bfl)}
 }
 
 type Luma601 struct {
+	L float64
+}
+
+func (c Luma601) EEEA() (e1, e2, e3 float64) {
+	e1 = c.L
+	e2 = c.L
+	e3 = c.L
+	return
 }
 
 func (c Luma601) RGBA() (r, g, b, a uint32) {
-	return
+	a = 0xffff
+	l := uint32((float64(a) * c.L) + 0.5)
+	return l, l, l, a
 }
 
-func luma240Model(c color.Color) color.Color {
-	return nil
+func luma240Model(c color.Color) Color {
+	r, g, b, a := c.RGBA()
+	rfl := float64(r) / float64(a)
+	gfl := float64(g) / float64(a)
+	bfl := float64(b) / float64(a)
+	return Luma240{L: (0.212 + rfl) + (0.701 * gfl) + (0.087 * bfl)}
 }
 
 type Luma240 struct {
+	L float64
+}
+
+func (c Luma240) EEEA() (e1, e2, e3 float64) {
+	e1 = c.L
+	e2 = c.L
+	e3 = c.L
+	return
 }
 
 func (c Luma240) RGBA() (r, g, b, a uint32) {
-	return
+	a = 0xffff
+	l := uint32((float64(a) * c.L) + 0.5)
+	return l, l, l, a
 }
 
-func luma709Model(c color.Color) color.Color {
-	return nil
+func luma709Model(c color.Color) Color {
+	r, g, b, a := c.RGBA()
+	rfl := float64(r) / float64(a)
+	gfl := float64(g) / float64(a)
+	bfl := float64(b) / float64(a)
+	return Luma709{L: (0.2126 + rfl) + (0.7152 * gfl) + (0.0722 * bfl)}
 }
 
 type Luma709 struct {
+	L float64
+}
+
+func (c Luma709) EEEA() (e1, e2, e3 float64) {
+	e1 = c.L
+	e2 = c.L
+	e3 = c.L
+	return
 }
 
 func (c Luma709) RGBA() (r, g, b, a uint32) {
-	return
+	a = 0xffff
+	l := uint32((float64(a) * c.L) + 0.5)
+	return l, l, l, a
 }
 
-func luma2020Model(c color.Color) color.Color {
-	return nil
+func luma2020Model(c color.Color) Color {
+	r, g, b, a := c.RGBA()
+	rfl := float64(r) / float64(a)
+	gfl := float64(g) / float64(a)
+	bfl := float64(b) / float64(a)
+	return Luma2020{L: (0.2627 + rfl) + (0.6780 * gfl) + (0.0593 * bfl)}
 }
 
 type Luma2020 struct {
+	L float64
+}
+
+func (c Luma2020) EEEA() (e1, e2, e3 float64) {
+	e1 = c.L
+	e2 = c.L
+	e3 = c.L
+	return
 }
 
 func (c Luma2020) RGBA() (r, g, b, a uint32) {
-	return
+	a = 0xffff
+	l := uint32((float64(a) * c.L) + 0.5)
+	return l, l, l, a
 }
 
 /*************************************************
@@ -132,131 +256,50 @@ type decodeFunc func(r io.Reader) (image.Image, error)
 type imageMatrix struct {
 	image.Image
 
-	// ONLY TO BE USED IN THIS FILE
-	_r   mat.Dense
-	_g   mat.Dense
-	_b   mat.Dense
-	_a   mat.Dense
-	_gra mat.Dense // Average gray
-	_lum mat.Dense // luminance
+	c Model
 }
 
 func (im *imageMatrix) Dims() (r, c int) {
-	r, c, _, _ = _size(im, &im._r)
+	min := im.Image.Bounds().Min
+	max := im.Image.Bounds().Max
+	r = max.Y - min.Y
+	c = max.X - min.X
 	return
 }
 
-func newImageMatrixFromImage(given image.Image) *imageMatrix {
-	im := new(imageMatrix)
-	im.Image = given
+func (im *imageMatrix) At(i, j int) (l float64) {
+	min := im.Image.Bounds().Min
+	_, _, l = im.c.Convert(im.Image.At(min.X+j, min.Y+i)).EEEA()
+	return
+}
+
+func (im *imageMatrix) T() mat.Matrix {
 	return im
 }
 
-func newImageMatrixFromFile(filePath string) *imageMatrix {
-	log.Printf("\"%s\"", filepath.Ext(strings.TrimSpace(filePath)))
+func (im *imageMatrix) Compile() *mat.Dense {
+	return mat.DenseCopyOf(im)
+}
+
+func newImageMatrix(given image.Image, cm Model) *imageMatrix {
+	return &imageMatrix{given, cm}
+}
+
+func newImageMatrixFromFile(filePath string, cm Model) *imageMatrix {
+	// log.Printf("\"%s\"", filepath.Ext(strings.TrimSpace(filePath)))
 	return _newImageMatrixFromFile(filePath, map[string]decodeFunc{
 		".jpg": jpeg.Decode,
 		".png": png.Decode,
-	}[filepath.Ext(strings.TrimSpace(filePath))])
+	}[filepath.Ext(strings.TrimSpace(filePath))], cm)
 }
 
-func _newImageMatrixFromFile(filePath string, decoder decodeFunc) *imageMatrix {
+func _newImageMatrixFromFile(filePath string, decoder decodeFunc, cm Model) *imageMatrix {
 	rawData, err := os.Open(filePath)
 	checkFatal(err)
-
 	decodedImg, err := decoder(bufio.NewReader(rawData))
 	checkFatal(err)
-	log.Printf("Color Model: %s", decodedImg.ColorModel())
-	min := decodedImg.Bounds().Min
-	max := decodedImg.Bounds().Max
-	r := max.X - min.X
-	c := max.Y - min.Y
-	return &imageMatrix{decodedImg,
-		*mat.NewDense(r, c, nil),
-		*mat.NewDense(r, c, nil),
-		*mat.NewDense(r, c, nil),
-		*mat.NewDense(r, c, nil),
-		*mat.NewDense(r, c, nil),
-		*mat.NewDense(r, c, nil)}
-}
 
-func _size(im *imageMatrix, dense *mat.Dense) (row, col, x, y int) {
-	row, col = dense.Dims() // (row, col) = (x, y)
-	min := im.Image.Bounds().Min
-	max := im.Image.Bounds().Max
-	x = max.X - min.X
-	y = max.Y - min.Y
-	return
-}
-
-func _sameSize(im *imageMatrix, dense *mat.Dense) bool {
-	r, c, x, y := _size(im, dense)
-	return r == x && c == y
-}
-
-// DATA POPULATING FUNCS FOR PACKAGE
-
-func _validate(im *imageMatrix, given *mat.Dense, populateFunc func()) {
-	if !_sameSize(im, given) {
-		populateFunc()
-		if !_sameSize(im, given) {
-			panic(fmt.Sprintf(`imageMatrix: %+v\nDense: %+v\nNOT THE SAME SIZE`, im, given))
-		}
-	}
-}
-
-func (im *imageMatrix) red(given *mat.Dense) {
-	_validate(im, given, im._populateRGBA)
-	given = &im._r
-}
-
-func (im *imageMatrix) green(given *mat.Dense) {
-	_validate(im, given, im._populateRGBA)
-	given = &im._g
-}
-
-func (im *imageMatrix) blue(given *mat.Dense) {
-	_validate(im, given, im._populateRGBA)
-	given = &im._b
-}
-
-func (im *imageMatrix) alpha(given *mat.Dense) {
-	_validate(im, given, im._populateRGBA)
-	given = &im._a
-}
-
-func (im *imageMatrix) _populateRGBA() {
-	rowlen, collen := im.Dims()
-	for r := 0; r < rowlen; r++ {
-		for c := 0; c < collen; c++ {
-			red, green, blue, alpha := im.Image.At(r, c).RGBA()
-			im._r.Set(r, c, float64(red))
-			im._g.Set(r, c, float64(green))
-			im._b.Set(r, c, float64(blue))
-			im._a.Set(r, c, float64(alpha))
-		}
-	}
-}
-
-func (im *imageMatrix) gray(given *mat.Dense) { // Average gray
-	_validate(im, given, im._populateGrayScale)
-	given = &im._gra
-}
-
-func (im *imageMatrix) lumin() *mat.Dense { // luminance
-	//_validate(im, given, im._populateGrayScale)
-	return &im._lum
-}
-
-func (im *imageMatrix) _populateGrayScale() {
-	rowlen, collen := im.Dims()
-	for r := 0; r < rowlen; r++ {
-		for c := 0; c < collen; c++ {
-			red, green, blue, alpha := im.Image.At(r, c).RGBA()
-			im._gra.Set(r, c, (float64(red)+float64(green)+float64(blue)+float64(alpha))/4.0)
-			im._lum.Set(r, c, (float64(red)*0.2126+float64(green)*0.7152+float64(blue)*0.0722)*(float64(alpha)/256.0))
-		}
-	}
+	return &imageMatrix{decodedImg, cm}
 }
 
 /*************************************************
@@ -265,7 +308,7 @@ func (im *imageMatrix) _populateGrayScale() {
 *
 ***************************************************/
 
-const ERRMARGIN float64 = 0.0000000000001
+const ERRMARGIN float64 = 0.000000000000000000001
 
 type testCase struct {
 	metric    string
@@ -311,7 +354,7 @@ func importAllTestCases() (results map[string][]*testCase, resultError error) {
 	results = make(map[string][]*testCase, 279)
 	line, resultError := rdr.ReadBytes('\n')
 	for errors.Is(resultError, nil) {
-		// log.Printf("%s", line)
+		// log.Printf("%S", line)
 		if matched := expectedBeginExp.Match(line); matched {
 			// log.Printf("Matched")
 			newCase := importTestCase(line)

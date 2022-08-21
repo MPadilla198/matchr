@@ -44,11 +44,8 @@ func TestMetrics(t *testing.T) {
 					t.Errorf("metricFunc error: %s", err)
 					return
 				}
-				got, err := metricFunc(fileBuilder1.String(), fileBuilder2.String())
-				if !errors.Is(err, nil) {
-					t.Errorf("metricFunc error: %s", err)
-					return
-				} else if !equal(cases[i], got) {
+				got := metricFunc(fileBuilder1.String(), fileBuilder2.String())
+				if !equal(cases[i], got) {
 					t.Logf("expected: %v", cases[i].result)
 					t.Logf("got: %v", got)
 					t.Fail()
