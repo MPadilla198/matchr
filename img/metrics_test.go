@@ -44,7 +44,9 @@ func TestMetrics(t *testing.T) {
 					t.Errorf("metricFunc error: %s", err)
 					return
 				}
-				got := metricFunc(fileBuilder1.String(), fileBuilder2.String())
+				img1 := newImageMatrixFromFile(fileBuilder1.String(), Luma709Model)
+				img2 := newImageMatrixFromFile(fileBuilder2.String(), Luma709Model)
+				got := metricFunc(img1, img2)
 				if !equal(cases[i], got) {
 					t.Logf("expected: %v", cases[i].result)
 					t.Logf("got: %v", got)

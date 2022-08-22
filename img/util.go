@@ -48,6 +48,7 @@ func ModelFunc(f func(color.Color) Color) Model {
 
 var (
 	// HSLModel https://en.wikipedia.org/wiki/HSL_and_HSV
+	HSIModel = ModelFunc(hsiModel)
 	HSLModel = ModelFunc(hslModel)
 	HSVModel = ModelFunc(hsvModel)
 	// HSPModel https://alienryderflex.com/hsp.html
@@ -58,6 +59,29 @@ var (
 	Luma709Model  = ModelFunc(luma709Model)
 	Luma2020Model = ModelFunc(luma2020Model)
 )
+
+func hsiModel(c color.Color) Color {
+	if hsiC, ok := c.(HSI); ok {
+		return hsiC
+	}
+	// TODO Convert to HSI from RGBA
+	return nil
+}
+
+type HSI struct {
+	h, s, l float32
+}
+
+func (c HSI) EEEA() (e1, e2, e3 float64) {
+	e1 = float64(c.h)
+	e2 = float64(c.s)
+	e3 = float64(c.l)
+	return
+}
+
+func (c HSI) RGBA() (r, g, b, a uint32) {
+	return
+}
 
 func hslModel(c color.Color) Color {
 	if hslC, ok := c.(HSL); ok {
@@ -252,7 +276,6 @@ const ASSETPATH = "test/assets/"
 
 type decodeFunc func(r io.Reader) (image.Image, error)
 
-// TODO REWORK imageMatrix to use less dense
 type imageMatrix struct {
 	image.Image
 
