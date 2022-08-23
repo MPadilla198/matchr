@@ -27,7 +27,7 @@ import (
 
 type Color interface {
 	color.Color
-	EEEA() (e1, e2, e3 float64)
+	EEE() (e1, e2, e3 float64)
 }
 
 type Model interface {
@@ -72,7 +72,7 @@ type HSI struct {
 	h, s, l float32
 }
 
-func (c HSI) EEEA() (e1, e2, e3 float64) {
+func (c HSI) EEE() (e1, e2, e3 float64) {
 	e1 = float64(c.h)
 	e2 = float64(c.s)
 	e3 = float64(c.l)
@@ -105,7 +105,7 @@ type HSL struct {
 	h, s, l float32
 }
 
-func (c HSL) EEEA() (e1, e2, e3 float64) {
+func (c HSL) EEE() (e1, e2, e3 float64) {
 	e1 = float64(c.h)
 	e2 = float64(c.s)
 	e3 = float64(c.l)
@@ -136,7 +136,7 @@ type HSV struct {
 	h, s, v float32
 }
 
-func (c HSV) EEEA() (e1, e2, e3 float64) {
+func (c HSV) EEE() (e1, e2, e3 float64) {
 	e1 = float64(c.h)
 	e2 = float64(c.s)
 	e3 = float64(c.v)
@@ -155,7 +155,7 @@ type HSP struct {
 	h, s, p float32
 }
 
-func (c HSP) EEEA() (e1, e2, e3 float64) {
+func (c HSP) EEE() (e1, e2, e3 float64) {
 	e1 = float64(c.h)
 	e2 = float64(c.s)
 	e3 = float64(c.p)
@@ -178,7 +178,7 @@ type Luma601 struct {
 	L float64
 }
 
-func (c Luma601) EEEA() (e1, e2, e3 float64) {
+func (c Luma601) EEE() (e1, e2, e3 float64) {
 	e1 = c.L
 	e2 = c.L
 	e3 = c.L
@@ -203,7 +203,7 @@ type Luma240 struct {
 	L float64
 }
 
-func (c Luma240) EEEA() (e1, e2, e3 float64) {
+func (c Luma240) EEE() (e1, e2, e3 float64) {
 	e1 = c.L
 	e2 = c.L
 	e3 = c.L
@@ -228,16 +228,16 @@ type Luma709 struct {
 	L float64
 }
 
-func (c Luma709) EEEA() (e1, e2, e3 float64) {
+func (c Luma709) EEE() (e1, e2, e3 float64) {
 	e1 = c.L
 	e2 = c.L
 	e3 = c.L
 	return
 }
 
-func (c Luma709) RGBA() (r, g, b, a uint32) {
+func (c Luma709) RGBA() (_, _, _, a uint32) {
 	a = 0xffff
-	l := uint32((float64(a) * c.L) + 0.5)
+	l := uint32(c.L)
 	return l, l, l, a
 }
 
@@ -253,7 +253,7 @@ type Luma2020 struct {
 	L float64
 }
 
-func (c Luma2020) EEEA() (e1, e2, e3 float64) {
+func (c Luma2020) EEE() (e1, e2, e3 float64) {
 	e1 = c.L
 	e2 = c.L
 	e3 = c.L
@@ -264,6 +264,47 @@ func (c Luma2020) RGBA() (r, g, b, a uint32) {
 	a = 0xffff
 	l := uint32((float64(a) * c.L) + 0.5)
 	return l, l, l, a
+}
+
+/*************************************************
+*
+* COLOR VECTOR UTILITIES
+*
+***************************************************/
+
+type colorVector struct {
+	e []float64
+}
+
+func newColorVector(clr color.Color) colorVector {
+	r, g, b, a := clr.RGBA()
+	return colorVector{[]float64{float64(r), float64(g), float64(b), float64(a)}}
+}
+
+func (cv colorVector) Dims() (int, int) {
+	return cv.Len(), 1
+}
+
+func (cv colorVector) At(i, j int) float64 {
+	if j != 0 || cv.Len() == 0 {
+		panic("")
+	}
+	return cv.AtVec(i)
+}
+
+func (cv colorVector) T() mat.Matrix {
+	return mat.NewDense(1, cv.Len(), cv.e)
+}
+
+func (cv colorVector) AtVec(i int) float64 {
+	return cv.e[i]
+}
+
+func (cv colorVector) Len() int {
+	if cv.e == nil {
+		panic("sdfgsfdgsg")
+	}
+	return len(cv.e)
 }
 
 /*************************************************
@@ -292,12 +333,30 @@ func (im *imageMatrix) Dims() (r, c int) {
 
 func (im *imageMatrix) At(i, j int) (l float64) {
 	min := im.Image.Bounds().Min
-	_, _, l = im.c.Convert(im.Image.At(min.X+j, min.Y+i)).EEEA()
+	_, _, l = im.c.Convert(im.Image.At(min.X+j, min.Y+i)).EEE()
 	return
+}
+
+func (im *imageMatrix) ColorAt(i, j int, withModel bool) colorVector {
+	if withModel {
+		return newColorVector(im.c.Convert(im.Image.At(j, i)))
+	}
+	return newColorVector(im.Image.At(j, i))
 }
 
 func (im *imageMatrix) T() mat.Matrix {
 	return im
+}
+
+func (im *imageMatrix) Map(f func(float64) float64) (result float64) {
+	r, c := im.Dims()
+	for i := 0; i < r; i++ {
+		for j := 0; j < c; j++ {
+			result += f(im.At(i, j))
+		}
+	}
+	result /= float64(r) * float64(c)
+	return
 }
 
 func (im *imageMatrix) Compile() *mat.Dense {

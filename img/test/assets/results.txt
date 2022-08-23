@@ -2484,7 +2484,7 @@ img7.jpg img3.jpg
 img7.jpg img4.jpg rase : inf
 img7.jpg img5.jpg 
 img7.jpg img6.jpg 
-img7.jpg img7.jpg rase : nan
+img7.jpg img7.jpg rase : 0.0
 img7.jpg img8.jpg 
 img8.jpg img1.jpg rase : 2462.3654756218016
 img8.jpg img2.jpg rase : 2519.1142411753276
